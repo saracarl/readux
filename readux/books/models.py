@@ -16,6 +16,7 @@ from rdflib.namespace import RDF, Namespace
 from eulfedora.models import  Relation, ReverseRelation, \
     FileDatastream, XmlDatastream
 from eulfedora.rdfns import relsext
+from eulxml import xmlmap
 
 from readux.books import abbyyocr
 from readux.fedora import DigitalObject
@@ -34,6 +35,35 @@ REPOMGMT = Namespace(rdflib.URIRef('http://pid.emory.edu/ns/2011/repo-management
 repomgmt_ns = {'eul-repomgmt': REPOMGMT}
 
 
+class Marc856(xmlmap.XmlObject):
+    indicator_2 = xmlmap.StringField('@ind2')
+    # 0 = electronic resource; 1 = electronic version; 2 = related electronic resource
+    label = xmlmap.StringField('subfield[@code="3"]')
+    url = xmlmap.StringField('subfield[@code="u"]')
+    mimetype = xmlmap.StringField('subfield[@code="u"]')
+    edition = xmlmap.StringField('subfield[@code="y"]')
+
+# current 856
+ #<datafield ind1="4" ind2="0" tag="856">
+    #<subfield code="3">PDF version</subfield>
+    #<subfield code="u">http://pid.emory.edu/ark:/25593/7stdz/PDF</subfield>
+    #<subfield code="q">application/pdf</subfield>
+  #</datafield>
+
+# new 856
+#<datafield ind1="4" ind2="1" tag="856">
+  #<subfield code="3">Online resource webpage and link to PDF</subfield>
+  #<subfield code="u">http://pid.emory.edu/ark:/25593/4ckjv</subfield>
+ #<subfield code="q">text/html</subfield>
+#  <subfield code="y">V.1</subfield>
+#</datafield>
+
+class MinMarcxml(xmlmap.XmlObject):
+    # minimal marc xml object for updating the 856 fields in the Book record
+    editions = xmlmap.NodeListField('datafield[@tag="856"][@ind1="4"]',
+        Marc856)
+
+
 class Book(DigitalObject):
     '''Fedora Book Object.  Extends :class:`~eulfedora.models.DigitalObject`.
 
@@ -48,6 +78,9 @@ class Book(DigitalObject):
 
     #: :class:`~readux.collection.models.Collection` this book belongs to
     collection = Relation(relsext.isMemberOfCollection, type=Collection)
+
+    marcxml = XmlDatastream("MARCXML", "MARC21 metadata", MinMarcxml,
+        defaults={'mimetype': 'text/xml`'})
 
     @property
     def best_description(self):
