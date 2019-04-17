@@ -11,6 +11,8 @@ services:
   - postgresql
 addons:
   - postgresql: '9.5'
+before_install:
+  - cp config/settings/local.dst config/settings/local.py
 before_script:
   - export DATABASE_URL=postgres://postgres@localhost:5432/travisci
 install:
